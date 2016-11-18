@@ -1,0 +1,20 @@
+---
+- name: Configure dhcpd
+  template:
+    src: dhcpd.conf
+    dest: /etc/dhcpd.conf
+    owner: root
+    group: wheel
+    mode: 0644
+  notify:
+    - dhcpd
+
+- name: Enable dhcpd
+  template:
+    src: 10-dhcp
+    dest: /etc/rc.conf.local.d/10-dhcp
+    owner: root
+    group: wheel
+    mode: 0644
+  notify:
+    - rc.conf.local

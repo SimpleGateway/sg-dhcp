@@ -1,0 +1,15 @@
+sg_dhcp_pool_lower: 10.0.1.2
+sg_dhcp_pool_upper: 10.0.1.128
+
+# Takes an IP, what is the subnet router; defaults to self
+#sg_dhcp_router:
+
+# Takes an IP, what is the DNS server; defaults to self
+#sg_dhcp_dns:
+
+# Takes an IP, what is the NTP server; defautls to self
+#sg_dhcp_ntp:
+
+# Takes ip and filename, where to pxeboot from
+#sg_dhcp_pxeboot_fname:
+#sg_dhcp_pxeboot_next:

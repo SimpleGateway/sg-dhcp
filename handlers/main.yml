@@ -1,0 +1,3 @@
+---
+- name: dhcpd
+  command: /etc/rc.d/dhcpd restart
