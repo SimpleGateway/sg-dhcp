@@ -1,1 +1,1 @@
-dhcpd_flags="{{ sg_common_int_if }}"
+dhcpd_flags="{{ sg_network | sg_service_interfaces('dhcp') }}"
