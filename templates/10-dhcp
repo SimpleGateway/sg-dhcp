@@ -1,1 +1,1 @@
-dhcpd_flags="{{ sg_network | sg_service_interfaces('dhcp') }}"
+dhcpd_flags="{{ sg_network|selectattr('services', 'issuperset', ['dhcp'])|list|map(attribute='name')|join(' ') }}"
