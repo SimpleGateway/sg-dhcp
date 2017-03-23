@@ -1,39 +1,63 @@
+#jinja2: trim_blocks: "true", lstrip_blocks: "true"
 authoritative;
 
-{% for interface in sg_network %}
-{% if "dhcp" in interface.services %}
-{% set dhcpconf = interface.serviceconf.dhcp %}
-subnet {{ interface.cidr | ipaddr('network') }} netmask {{ interface.cidr | ipaddr('netmask') }} {
-	range {{ dhcpconf.pool | ipaddr('1') | ipaddr('address') }} {{ dhcpconf.pool | ipaddr('-2') | ipaddr('address') }};
-	default-lease-time {{ dhcpconf.default_lease_time | default(3600) }};
-	max-lease-time {{ dhcpconf.max_lease_time | default(7200) }};
-	option routers {{ dhcpconf.routers | default(interface.address) }};
-	option domain-name "{{ interface.domain | default(sg_globalconf.domain) }}";
-	option domain-name-servers {{ dhcpconf.dns | default(interface.address) }};
-	option ntp-servers {{ dhcpconf.ntp | default(interface.address) }};
-{% if dhcpconf.pxeboot_fname is defined %}
-	filename "{{ dhcpconf.pxeboot_fname }}";
-	next-server {{ dhcpconf.pxeboot_next | default(interface.address) }};
+{% for interface in sg_interfaces %}
+{% if interface.carpdev is not defined %}
+{% set real_interfaces = sg_interfaces|json_query('[?carpdev==\''+interface.name+'\'].name')|list +  [interface.name] %}
+{% set dhcp_networks = [] %}
+{% for network in sg_networks|selectattr('services', 'issuperset', ['dhcp'])|list %}
+{% if network.attach_to in real_interfaces %}
+{% if dhcp_networks.append(network) %}{% endif %}
 {% endif %}
-}
-
-group {
-	# Gateway Interface
-	host {{ sg_globalconf.hostname }} {
-		hardware ethernet {{ hostvars[inventory_hostname]['ansible_' + interface.name]['macaddress'] }};
-		fixed-address {{ interface.address }};
+{% endfor %}
+{% if dhcp_networks|length >1 %}
+shared-network {{ interface.name }} {
+	{% endif %}
+	{% for network in dhcp_networks %}
+	{% set dhcpconf = network.serviceconf.dhcp %}
+	subnet {{ network.cidr|ipaddr('network') }} netmask {{ network.cidr|ipaddr('netmask') }} {
+		{% if dhcpconf.pools is defined %}
+		{% for pool in dhcpconf.pools %}
+		range {{ pool|ipaddr('1')|ipaddr('address') }} {{ pool|ipaddr('-2')|ipaddr('address') }};
+		{% endfor %}
+		{% endif %}
+		default-lease-time {{ dhcpconf.default_lease_time|default(3600) }};
+		max-lease-time {{ dhcpconf.max_lease_time|default(7200) }};
+		option routers {{ dhcpconf.routers }};
+		{% if 'dns' in network.services %}
+		option domain-name "{{ network.domain|default("example.com") }}";
+		option domain-name-servers {{ dhcpconf.dns }};
+		{% endif %}
+		{% if 'ntp' in network.services %}
+		option ntp-servers {{ dhcpconf.ntp }};
+		{% endif %}
+		{% if dhcpconf.pxeboot_fname is defined %}
+		filename "{{ dhcpconf.pxeboot_fname }}";
+		next-server {{ dhcpconf.pxeboot_next }};
+		{% endif %}
+		{% if dhcpconf.allow_unknown is defined %}
+		{% if dhcpconf.allow_unknown %}
+		allow unknown-clients;
+		{% else %}
+		deny unknown-clients;
+		{% endif %}
+		{% endif %}
 	}
+	{% endfor %}
+	{% if dhcp_networks|length >1 %}
 }
-
-{% if interface.hosts is defined %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% for network in sg_networks %}
+{% if network.hosts is defined %}
 group {
-{% for host in interface.hosts %}
+	{% for host in network.hosts %}
 	host {{ host.name }} {
 		hardware ethernet {{ host.mac }};
 		fixed-address {{ host.addr }};
-      }
-{% endfor %}
+	}
+	{% endfor %}
 }
-{% endif %}
 {% endif %}
 {% endfor %}

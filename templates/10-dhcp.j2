@@ -1,1 +1,14 @@
-dhcpd_flags="{{ sg_network|selectattr('services', 'issuperset', ['dhcp'])|list|map(attribute='name')|join(' ') }}"
+dhcpd_flags="{% if sg_globalconf.dhcp is defined and sg_globalconf.dhcp.synctarget is defined and sg_globalconf.dhcp.synclisten is defined %}
+-Y {{ sg_globalconf.dhcp.synctarget }} -y {{ sg_globalconf.dhcp.synclisten }} {% endif %}
+-A baddhcp -C activedhcp -L activedhcp {% for interface in sg_interfaces %}
+{% if interface.carpdev is not defined %}
+{% set real_interfaces = sg_interfaces|json_query('[?carpdev==\''+interface.name+'\'].name')|list +  [interface.name] %}
+{% set dhcp_networks = [] %}
+{% for network in sg_networks|selectattr('services', 'issuperset', ['dhcp'])|list %}
+{% if network.attach_to in real_interfaces %}
+{% if dhcp_networks.append(network) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% if dhcp_networks  %}{{ interface.name }}{% endif %}
+{% endif %}
+{% endfor %}"
