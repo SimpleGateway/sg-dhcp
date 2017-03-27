@@ -1,8 +1,16 @@
 ---
-- name: Configure dhcpd
+- name: Create dhcpd.conf.d
+  file:
+    path: /etc/dhcpd.conf.d
+    state: directory
+    owner: root
+    group: wheel
+    mode: 0755
+
+- name: Configure dhcpd core
   template:
     src: dhcpd.conf.j2
-    dest: /etc/dhcpd.conf
+    dest: /etc/dhcpd.conf.d/10-core
     owner: root
     group: wheel
     mode: 0644
@@ -18,3 +26,11 @@
     mode: 0644
   notify:
     - rc.conf.local
+
+- name: Install dhcpd-reconf
+  copy:
+    src: dhcpd-reconf
+    dest: /usr/local/sbin/dhcpd-reconf
+    owner: root
+    group: wheel
+    mode: 0755

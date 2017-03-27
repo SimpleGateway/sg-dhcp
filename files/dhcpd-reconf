@@ -1,0 +1,12 @@
+#!/bin/sh
+
+
+# This assembles all of the snippets into a complete configuration file
+cat /etc/dhcpd.conf.d/* > /etc/dhcpd.conf
+
+# Restart dhcpd iff the new config file checks out
+if dhcpd -n ; then
+    /etc/rc.d/dhcpd restart
+else
+    printf "Refusing to restart dhcpd: dhcpd.conf contains errors!\n"
+fi
